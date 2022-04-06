@@ -1,0 +1,63 @@
+---
+title: "Tidy Tuesday Stat Experience"
+author: "Dav King"
+date: "4/6/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(tidyverse)
+library(tidycensus)
+library(tigris)
+library(cowplot)
+options(tigris_use_cache = T)
+tuesdata <- tidytuesdayR::tt_load(2022, week = 14)
+news_orgs <- tuesdata$news_orgs
+```
+
+```{r geom-data}
+st <- states() %>% 
+  shift_geometry()
+```
+
+```{r build-plot}
+pay_count <- news_orgs %>% 
+  filter(country == "United States") %>% 
+  group_by(paywall_or_gateway, .drop = F) %>% 
+  count(state) %>% 
+  pivot_wider(names_from = paywall_or_gateway, values_from = n) %>% 
+  mutate_at(vars(-state), ~replace(., is.na(.), 0)) %>% 
+  add_row(state = "WV", `Hard paywall (all content behind a gate)` = 0,
+          `Hybrid model (some free content, separate premium tier)` = 0,
+          `I don't have a paywall` = 0, Other = 0, 
+          `Static meter (e.g., five free articles per month)` = 0, `NA` = 0) %>% 
+  add_row(state = "ND", `Hard paywall (all content behind a gate)` = 0,
+          `Hybrid model (some free content, separate premium tier)` = 0,
+          `I don't have a paywall` = 0, Other = 0, 
+          `Static meter (e.g., five free articles per month)` = 0, `NA` = 0) %>%
+  add_row(state = "AK", `Hard paywall (all content behind a gate)` = 0,
+          `Hybrid model (some free content, separate premium tier)` = 0,
+          `I don't have a paywall` = 0, Other = 0, 
+          `Static meter (e.g., five free articles per month)` = 0, `NA` = 0) %>% 
+  pivot_longer(cols = -state, names_to = "paywall_type", values_to = "n")
+st %>% 
+  full_join(pay_count, by = c("STUSPS" = "state")) %>% 
+  filter(STUSPS != "AS" & STUSPS != "GU" & STUSPS != "MP" & STUSPS != "VI") %>% 
+  group_split(paywall_type) %>% 
+  map( 
+    ~ggplot(., aes(fill = n)) +
+      geom_sf() +
+      scale_fill_gradient2(low = "white", high = "darkblue",
+                           midpoint = median(.$n)) +
+      facet_wrap(~ paywall_type) +
+      labs(title = "Density of Different Types of Newspaper Paywall, by State",
+       fill = "Number") +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")) %>% 
+  plot_grid(plotlist = ., align = "hv", ncol = 3)
+```
