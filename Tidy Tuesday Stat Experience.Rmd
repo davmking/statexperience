@@ -54,10 +54,14 @@ st %>%
       scale_fill_gradient2(low = "white", high = "darkblue",
                            midpoint = median(.$n)) +
       facet_wrap(~ paywall_type) +
-      labs(title = "Density of Different Types of Newspaper Paywall, by State",
+      labs(title = "Different Types of Newspaper Paywall",
+           subtitle = "Density by State",
        fill = "Number") +
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
+            plot.subtitle = element_text(hjust = 0.5),
         legend.position = "bottom")) %>% 
   plot_grid(plotlist = ., align = "hv", ncol = 3)
+
+ggsave("paywall_density.svg", width = 15, height = 10)
 ```
